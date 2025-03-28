@@ -14,7 +14,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # Configuración de CORS
-CORS(app, resources={r"/*": {"origins": "http://localhost:5174"}})
+CORS(app, resources={r"/*": {"origins": "https://main.d3gd2kcl7rhrjn.amplifyapp.com"}})
 
 # Configuración de JWT
 app.config['JWT_SECRET_KEY'] = 'Prueba dia 08-02-2025'
@@ -31,7 +31,7 @@ jwt = JWTManager(app)
 # Ruta de prueba
 @app.route('/')
 def home():
-    return '¡Hola, mundo!'
+    return '¡Hola, esta es un API realizada para el proyecto de 5to cuatrimestre basada en un baston inteligente'
 
 # Importar los Blueprints de usuarios y roles
 from routes.rutas import usuario_bp, roles_bp, baston_bp, ubicacion_bp
