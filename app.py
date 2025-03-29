@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask
 from config import db, migrate
 from dotenv import load_dotenv
@@ -6,13 +5,13 @@ import os
 from flask import Blueprint
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from flasgger import Swagger  # Importamos Flasgger
 
 # Cargar las variables de entorno desde un archivo .env
 load_dotenv()
 
 # Inicialización de la aplicación Flask
 app = Flask(__name__)
-
 
 # Configuración de CORS
 CORS(app, resources={r"/*": {"origins": "https://main.d3gd2kcl7rhrjn.amplifyapp.com"}})
@@ -29,10 +28,20 @@ db.init_app(app)
 migrate.init_app(app, db)
 jwt = JWTManager(app)
 
+# Inicializar Swagger
+swagger = Swagger(app)
+
 # Ruta de prueba
 @app.route('/')
 def home():
-    return '¡Hola, esta es un API realizada para el proyecto de 5to cuatrimestre basada en un baston inteligente'
+    """
+    Esta es la ruta de inicio de la API.
+    ---
+    responses:
+      200:
+        description: Bienvenida a la API.
+    """
+    return '¡Hola, esta es un API realizada para el proyecto de 5to cuatrimestre basada en un bastón inteligente'
 
 # Importar los Blueprints de usuarios y roles
 from routes.rutas import usuario_bp, roles_bp, baston_bp, ubicacion_bp
