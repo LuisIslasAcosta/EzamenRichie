@@ -2,7 +2,6 @@ from flask import Flask
 from config import db, migrate
 from dotenv import load_dotenv
 import os
-from flask import Blueprint
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from flasgger import Swagger  # Importamos Flasgger
@@ -14,7 +13,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # Configuración de CORS
-CORS(app, resources={r"/*": {"origins": "https://main.d3gd2kcl7rhrjn.amplifyapp.com"}})
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
 # Configuración de JWT
 app.config['JWT_SECRET_KEY'] = 'Prueba dia 08-02-2025'
@@ -43,14 +42,11 @@ def home():
     """
     return '¡Hola, esta es un API realizada para el proyecto de 5to cuatrimestre basada en un bastón inteligente'
 
-# Importar los Blueprints de usuarios y roles
-from routes.rutas import usuario_bp, roles_bp, baston_bp, ubicacion_bp
+# Importar solo el Blueprint de usuarios
+from routes.rutas import usuario_bp
 
-# Registrar los Blueprints
-app.register_blueprint(usuario_bp, url_prefix='/usuario')
-app.register_blueprint(roles_bp, url_prefix='/roles')
-app.register_blueprint(baston_bp, url_prefix='/bastones')
-app.register_blueprint(ubicacion_bp, url_prefix='/ubicaciones')
+# Registrar el Blueprint de usuarios
+app.register_blueprint(usuario_bp, url_prefix='/users')
 
 # Correr la aplicación
 if __name__ == '__main__':

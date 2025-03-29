@@ -1,70 +1,20 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from controllers.controllers import get_all_roles, create_rol, create_usuario, get_all_bastones, create_baston
-from controllers.controllers import edit_usuario, get_usuario_por_id, delete_baston, create_access_token
-from controllers.controllers import get_all_ubicaciones, create_ubicacion, asignar_baston_usuario
+from controllers.controllers import (
+    create_usuario, get_usuario_por_id, edit_usuario, login_usuario
+)
 from models.models import Usuario
 
 # Blueprints
 usuario_bp = Blueprint('usuarios', __name__)
-roles_bp = Blueprint('roles', __name__)
-baston_bp = Blueprint('bastones', __name__)
-ubicacion_bp = Blueprint('ubicaciones', __name__)
-
-# ------------------------------------- Roles -------------------------------------- #
-
-@roles_bp.route('/roles', methods=['GET'])
-def obtener_roles():
-    """
-    Obtiene todos los roles.
-    ---
-    responses:
-      200:
-        description: Lista de roles disponibles.
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              nombre:
-                type: string
-    """
-    return get_all_roles()
-
-@roles_bp.route('/', methods=['POST'])
-def create_rol_route():
-    """
-    Crear un nuevo rol.
-    ---
-    parameters:
-      - name: nombre
-        in: body
-        type: string
-        required: true
-        description: El nombre del rol.
-    responses:
-      200:
-        description: Rol creado exitosamente.
-      400:
-        description: Faltan campos requeridos.
-    """
-    data = request.get_json()
-    nombre = data.get('nombre')
-    
-    if not nombre:
-        return jsonify({"error": "Faltan campos requeridos"}), 400
-    
-    return create_rol(nombre)
 
 # -------------------------------------- Usuarios y Registros --------------------------- #
 
+# Crear un nuevo usuario
 @usuario_bp.route('/', methods=['POST'])
 def usuario_store():
     """
     Crear un nuevo usuario.
-    ---
+    --- 
     parameters:
       - name: email
         in: body
@@ -98,18 +48,16 @@ def usuario_store():
     password = data.get('password')
     telefono = data.get('telefono')
 
-    rol_id = data.get('rol_id', 1)  # Asignar rol_id 1 por defecto (usuario regular)
-
     if not all([email, nombre, password, telefono]):
         return jsonify({"error": "Faltan campos requeridos"}), 400
 
-    return create_usuario(nombre, email, telefono, password, rol_id)
+    return create_usuario(nombre, email, telefono, password)
 
 @usuario_bp.route('/login', methods=['POST'])
 def login_usuario_route():
     """
     Login de usuario.
-    ---
+    --- 
     parameters:
       - name: email
         in: body
@@ -133,17 +81,11 @@ def login_usuario_route():
             usuario:
               type: object
               properties:
-                id:
-                  type: integer
                 nombre:
                   type: string
                 email:
                   type: string
-                telefono:
-                  type: string
-                rol_id:
-                  type: integer
-                rol_nombre:
+                fecha_registro:
                   type: string
       401:
         description: Credenciales inválidas.
@@ -155,35 +97,14 @@ def login_usuario_route():
     if not email or not password:
         return jsonify({"error": "Email y contraseña son requeridos"}), 400
 
-    try:
-        usuario = Usuario.query.filter_by(email=email).first()
-
-        if usuario and usuario.check_password(password):
-            access_token = create_access_token(identity=usuario.id)
-            return jsonify({
-                "message": "Login exitoso",
-                "access_token": access_token,
-                "usuario": {
-                    "id": usuario.id,
-                    "nombre": usuario.nombre,
-                    "email": usuario.email,
-                    "telefono": usuario.telefono,
-                    "rol_id": usuario.rol_id,
-                    "rol_nombre": usuario.rol.nombre
-                }
-            }), 200
-        else:
-            return jsonify({"error": "Credenciales inválidas"}), 401
-    except Exception as e:
-        print(f"ERROR: {e}")
-        return jsonify({"error": "Login fallido"}), 500
+    return login_usuario(email, password)
 
 # Ruta para obtener todos los usuarios
 @usuario_bp.route('/obtener', methods=['GET'])
 def get_usuarios():
     """
     Obtener todos los usuarios.
-    ---
+    --- 
     responses:
       200:
         description: Lista de usuarios.
@@ -192,16 +113,14 @@ def get_usuarios():
           items:
             type: object
             properties:
-              id:
-                type: integer
               nombre:
                 type: string
               email:
                 type: string
-              telefono:
+              password:
                 type: string
-              rol_id:
-                type: integer
+              fecha_registro:
+                type: string
     """
     try:
         usuarios = Usuario.query.all()
@@ -210,77 +129,104 @@ def get_usuarios():
         print(f"ERROR: {e}")
         return jsonify({"error": "Error al obtener los usuarios"}), 500
 
-# ---------------------------------------- Bastones -------------------------------- #
-
-@baston_bp.route('/create_baston', methods=['POST'])
-def create_baston_route():
+# Ruta para obtener un usuario por ID
+@usuario_bp.route('/<int:usuario_id>', methods=['GET'])
+def get_usuario(usuario_id):
     """
-    Crear un nuevo bastón.
-    ---
+    Obtener un usuario por ID.
+    --- 
     parameters:
+      - name: usuario_id
+        in: path
+        type: integer
+        required: true
+        description: El ID del usuario.
+    responses:
+      200:
+        description: Detalles del usuario.
+        schema:
+          type: object
+          properties:
+            nombre:
+              type: string
+            email:
+              type: string
+            password:
+              type: string
+            fecha_registro:
+              type: string
+      404:
+        description: Usuario no encontrado.
+    """
+    return get_usuario_por_id(usuario_id)
+
+# Ruta para editar un usuario
+@usuario_bp.route('/<int:usuario_id>', methods=['PUT'])
+def edit_usuario_route(usuario_id):
+    """
+    Editar un usuario.
+    --- 
+    parameters:
+      - name: usuario_id
+        in: path
+        type: integer
+        required: true
+        description: El ID del usuario.
       - name: nombre
         in: body
         type: string
-        required: true
-        description: El nombre del bastón.
+        description: El nombre del usuario.
+      - name: email
+        in: body
+        type: string
+        description: El correo electrónico del usuario.
+      - name: password
+        in: body
+        type: string
+        description: La contraseña del usuario.
+      - name: telefono
+        in: body
+        type: string
+        description: El teléfono del usuario.
     responses:
       200:
-        description: Bastón creado exitosamente.
-      400:
-        description: Faltan campos requeridos.
+        description: Usuario actualizado exitosamente.
+      404:
+        description: Usuario no encontrado.
     """
     data = request.get_json()
     nombre = data.get('nombre')
+    email = data.get('email')
+    telefono = data.get('telefono')
+    password = data.get('password')
 
-    if not nombre:
-        return jsonify({'msg': 'El nombre es obligatorio'}), 400
+    return edit_usuario(usuario_id, nombre, email, telefono, password)
 
-    return create_baston(nombre)
-
-@baston_bp.route('/bastones', methods=['GET'])
-def get_all_bastones_route():
+# Ruta para eliminar un usuario
+@usuario_bp.route('/<int:usuario_id>', methods=['DELETE'])
+def delete_usuario_route(usuario_id):
     """
-    Obtener todos los bastones.
-    ---
+    Eliminar un usuario.
+    --- 
+    parameters:
+      - name: usuario_id
+        in: path
+        type: integer
+        required: true
+        description: El ID del usuario.
     responses:
       200:
-        description: Lista de bastones.
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              nombre:
-                type: string
-    """
-    return get_all_bastones()
-
-# ----------------------------------- Ubicaciones ---------------------------------#
-
-@ubicacion_bp.route('/ubicaciones', methods=['GET'])
-def obtener_ubicaciones():
-    """
-    Obtener todas las ubicaciones.
-    ---
-    responses:
-      200:
-        description: Lista de ubicaciones.
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-              latitud:
-                type: number
-              longitud:
-                type: number
-              direccion:
-                type: string
+        description: Usuario eliminado exitosamente.
+      404:
+        description: Usuario no encontrado.
     """
     try:
-        return get_all_ubicaciones()
+        usuario = Usuario.query.get(usuario_id)
+        if not usuario:
+            return jsonify({'msg': 'Usuario no encontrado'}), 404
+        db.session.delete(usuario)
+        db.session.commit()
+        return jsonify({'msg': 'Usuario eliminado'}), 200
     except Exception as e:
         print(f"ERROR: {e}")
-        return jsonify({"error": "Error al obtener las ubicaciones"}), 500
+        return jsonify({'msg': 'Error al eliminar el usuario'}), 500
