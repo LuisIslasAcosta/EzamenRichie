@@ -13,6 +13,7 @@ load_dotenv()
 # Inicialización de la aplicación Flask
 app = Flask(__name__)
 
+
 # Configuración de CORS
 CORS(app, resources={r"/*": {"origins": "https://main.d3gd2kcl7rhrjn.amplifyapp.com"}})
 

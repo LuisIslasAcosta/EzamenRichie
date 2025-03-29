@@ -13,6 +13,7 @@ ubicacion_bp = Blueprint('ubicaciones', __name__)
 
 # ------------------------------------- Roles -------------------------------------- #
 
+
 # Ruta para obtener todos los roles
 @roles_bp.route('/roles', methods=['GET'])
 def obtener_roles():
